@@ -1,16 +1,20 @@
+/**server steps */
 const express = require("express");
 const port = 8000;
 const app = express();
 app.use(express.json());
-/**server steps */
+
 /**mongoose */
 const mongoose = require("mongoose");
 const {dbUrl, mongodb} = require("./dbconfig");
 const {UserModel} = require("./UserSchema");
-const {hashPassword, hashCompare, createToken, decodeToken, validate, roleAdmin} = require("./auth");
 mongoose.connect(dbUrl);
 
-app.post("/add-users", async (req, res) => {
+/**Authentication */
+const {hashPassword, hashCompare, createToken, validate, roleAdmin} = require("./auth");
+
+/**Routes */
+app.post("/add-users", validate, roleAdmin, async (req, res) => {
 	let verifyUser = await UserModel.findOne({email: req.body.email});
 
 	if (!verifyUser) {
@@ -69,8 +73,8 @@ app.get("/getall", validate, roleAdmin, async (req, res) => {
 	}
 });
 
-app.put("/edit-user", async (req, res) => {
-	let verifyUser = await UserModel.findOne({_id: new mongodb.ObjectId(req.body._id)});
+app.put("/edit-user", validate, roleAdmin, async (req, res) => {
+	let verifyUser = await UserModel.findOne({_id: req.body._id});
 	console.log(verifyUser, req.params._id);
 	if (verifyUser) {
 		let users = await UserModel.updateOne({_id: new mongodb.ObjectId(req.body._id)}, {$set: req.body}, {runValidators: true});
@@ -86,11 +90,11 @@ app.put("/edit-user", async (req, res) => {
 	}
 });
 
-app.delete("/delete/:id", async (req, res) => {
-	let verifyUser = await UserModel.findOne({_id: req.params.id});
+app.delete("/delete", validate, roleAdmin, async (req, res) => {
+	let verifyUser = await UserModel.findOne({_id: req.body.id});
 	if (verifyUser) {
 		try {
-			let users = await UserModel.deleteOne({_id: req.params.id});
+			let users = await UserModel.deleteOne({_id: req.body.id});
 
 			res.status(200).send({
 				message: "User deleted successfully",
